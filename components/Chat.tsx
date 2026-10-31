@@ -12,7 +12,7 @@ const WELCOME: Msg = {
     "Hi! I'm the **DPA Assistant**. Ask me anything about the **Data Privacy Act of 2012 (RA 10173)**. I answer only from the text of the law and show the Section each answer comes from.",
 };
 
-const SUGGESTIONS = [
+export const SUGGESTIONS = [
   "What does DPA mean?",
   "When was it established?",
   "What is personal information?",
@@ -27,7 +27,9 @@ const LABEL = /Sec\. \d+|Title & Approval/g;
 const CITE = /\[((?:Sec\. \d+|Title & Approval)(?:\s*[,;]\s*(?:Sec\. \d+|Title & Approval))*)\]/g;
 const labelsIn = (text: string) => [...text.matchAll(CITE)].flatMap((m) => m[1].match(LABEL) ?? []);
 
-export default function Chat({ onBusy }: { onBusy: (busy: boolean) => void }) {
+export type QueuedQuestion = { text: string; id: number };
+
+export default function Chat({ onBusy, queued }: { onBusy: (busy: boolean) => void; queued?: QueuedQuestion | null }) {
   const [messages, setMessages] = useState<Msg[]>([WELCOME]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -39,6 +41,12 @@ export default function Chat({ onBusy }: { onBusy: (busy: boolean) => void }) {
   }, [messages]);
 
   useEffect(() => onBusy(busy), [busy, onBusy]);
+
+  // Questions clicked in the "Try asking" list outside the chat panel.
+  useEffect(() => {
+    if (queued) ask(queued.text);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queued?.id]);
 
   function update(fn: (m: Msg) => Msg) {
     setMessages((all) => [...all.slice(0, -1), fn(all[all.length - 1])]);

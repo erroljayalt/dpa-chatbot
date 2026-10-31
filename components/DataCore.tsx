@@ -72,8 +72,9 @@ export default function DataCore({ busy }: { busy: boolean }) {
       renderer.setSize(w, h);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
-      if (w > 820) { core.position.set(-3.4, -0.3, -1.5); core.scale.setScalar(0.9); }
-      else { core.position.set(0, 2.6, 0); core.scale.setScalar(0.7); }
+      // Desktop: upper-left, behind the title, clear of the "Try asking" list. Phone: dim, behind the header.
+      if (w > 820) { core.position.set(-5.6, 2.2, -5); core.scale.setScalar(0.7); }
+      else { core.position.set(0, 3.2, -3); core.scale.setScalar(0.6); }
     };
     layout();
     window.addEventListener("resize", layout);

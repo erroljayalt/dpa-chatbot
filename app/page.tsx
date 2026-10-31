@@ -2,13 +2,14 @@
 
 import { useCallback, useState } from "react";
 import dynamic from "next/dynamic";
-import Chat from "@/components/Chat";
+import Chat, { SUGGESTIONS, type QueuedQuestion } from "@/components/Chat";
 
 // Three.js only runs in the browser.
 const DataCore = dynamic(() => import("@/components/DataCore"), { ssr: false });
 
 export default function Home() {
   const [busy, setBusy] = useState(false);
+  const [queued, setQueued] = useState<QueuedQuestion | null>(null);
   const onBusy = useCallback((b: boolean) => setBusy(b), []);
 
   return (
@@ -24,8 +25,16 @@ export default function Home() {
             <span>9 Chapters</span>
             <span>Approved 15 Aug 2012</span>
           </div>
+          <div className="try">
+            <small>Try asking</small>
+            {SUGGESTIONS.map((s) => (
+              <button key={s} type="button" disabled={busy} onClick={() => setQueued({ text: s, id: Date.now() })}>
+                {s}
+              </button>
+            ))}
+          </div>
         </section>
-        <Chat onBusy={onBusy} />
+        <Chat onBusy={onBusy} queued={queued} />
       </main>
     </>
   );
