@@ -1,0 +1,29 @@
+{
+  "name": "dpa-chatbot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "RAG chatbot that answers questions about the Philippine Data Privacy Act of 2012 (RA 10173)",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "build-index": "node --env-file=.env.local scripts/build-index.mjs",
+    "test-rag": "node --env-file=.env.local scripts/test-questions.mjs"
+  },
+  "dependencies": {
+    "@google/genai": "2.32.0",
+    "groq-sdk": "1.6.0",
+    "next": "16.4.3",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "react-markdown": "10.1.0",
+    "three": "0.187.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/three": "0.187.0",
+    "typescript": "5.9.3"
+  }
+}
