@@ -31,6 +31,7 @@ for (const q of QUESTIONS) {
     const ev = JSON.parse(line);
     if (ev.type === "sources") sources = ev.sources.map((s) => s.label);
     if (ev.type === "text") answer += ev.value;
+    if (ev.type === "reset") { answer = ""; console.log("(answer was cut off — retried in paraphrase mode)"); }
     if (ev.type === "done") provider = ev.provider;
     if (ev.type === "error") answer += `[ERROR] ${ev.message}`;
   }

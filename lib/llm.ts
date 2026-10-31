@@ -12,6 +12,14 @@ const GEMINI_MODELS = (process.env.GEMINI_MODELS ?? "gemini-3.5-flash-lite,gemin
   .filter(Boolean);
 const GROQ_MODEL = process.env.GROQ_MODEL ?? "llama-3.3-70b-versatile";
 const FIRST_TOKEN_MS = 12_000;
+const CUT_OFF = new Set(["RECITATION", "SAFETY", "BLOCKLIST", "PROHIBITED_CONTENT", "OTHER"]);
+
+class CutOffError extends Error {}
+
+// Added on the retry after an answer was cut off for quoting too much.
+const PARAPHRASE_NOTE = `
+
+IMPORTANT FOR THIS ANSWER: Your previous attempt was cut off for copying the law's text word for word. Explain everything in your own words. Do not quote more than one short phrase (under 12 words). Never copy the law's ALL-CAPS title. Keep the [Sec. N] citations.`;
 
 type Provider = { name: string; stream: (system: string, messages: ChatMessage[]) => AsyncGenerator<string> };
 
@@ -45,7 +53,13 @@ function providers(): Provider[] {
             if (!/thinking/i.test(String((e as Error).message))) throw e;
             res = await ai.models.generateContentStream({ model, contents, config: base });
           }
-          for await (const chunk of res) if (chunk.text) yield chunk.text;
+          let finish: string | undefined;
+          for await (const chunk of res) {
+            if (chunk.text) yield chunk.text;
+            finish = chunk.candidates?.[0]?.finishReason ?? finish;
+          }
+          // Gemini stops mid-sentence when it copies long published text verbatim ("RECITATION").
+          if (finish && CUT_OFF.has(finish)) throw new CutOffError(`${model} stopped early: ${finish}`);
         },
       });
     }
@@ -74,11 +88,29 @@ function providers(): Provider[] {
   return list;
 }
 
-/** Streams an answer, trying each free provider in turn. Yields {provider} first, then text. */
-export async function* streamAnswer(
-  system: string,
-  messages: ChatMessage[]
-): AsyncGenerator<{ provider: string } | { text: string }> {
+type Part = { provider: string } | { text: string } | { reset: true };
+
+/**
+ * Streams an answer, trying each free provider in turn. Yields {provider} first, then text.
+ * If an answer gets cut off midway, yields {reset} and asks again in paraphrase mode.
+ */
+export async function* streamAnswer(system: string, messages: ChatMessage[]): AsyncGenerator<Part> {
+  try {
+    yield* attempt(system, messages);
+  } catch (e) {
+    if (!(e instanceof CutOffError)) throw e;
+    console.warn("Answer was cut off, retrying in paraphrase mode:", e.message);
+    yield { reset: true };
+    try {
+      yield* attempt(system + PARAPHRASE_NOTE, messages);
+    } catch (e2) {
+      if (!(e2 instanceof CutOffError)) throw e2;
+      yield { text: "…\n\n_The answer was cut off. Tap a Section tag above to read the full text of the law._" };
+    }
+  }
+}
+
+async function* attempt(system: string, messages: ChatMessage[]): AsyncGenerator<Part> {
   const list = providers();
   if (!list.length) throw new Error("No AI provider configured. Add GEMINI_API_KEY (and optionally GROQ_API_KEY).");
 
@@ -104,7 +136,7 @@ export async function* streamAnswer(
       }
       lastError = new Error(`${p.name} returned an empty answer`);
     } catch (e) {
-      if (started) throw e; // can't switch providers mid-answer
+      if (started) throw e; // can't switch providers mid-answer (a CutOffError triggers the paraphrase retry)
       lastError = e;
       console.warn(`${p.name} failed, trying next provider:`, (e as Error).message);
     }

@@ -64,7 +64,8 @@ chunks.push({
   chapter: "",
   text: [
     'Republic Act No. 10173 is known as the "Data Privacy Act of 2012" (commonly abbreviated DPA).',
-    "Full title: AN ACT PROTECTING INDIVIDUAL PERSONAL INFORMATION IN INFORMATION AND COMMUNICATIONS SYSTEMS IN THE GOVERNMENT AND THE PRIVATE SECTOR, CREATING FOR THIS PURPOSE A NATIONAL PRIVACY COMMISSION, AND FOR OTHER PURPOSES.",
+    // Sentence case on purpose: Gemini cuts off answers that copy the ALL-CAPS title verbatim.
+    "Its long title describes it as an Act protecting individual personal information in information and communications systems in the government and the private sector, and creating a National Privacy Commission for this purpose.",
     "Enacted by the Fifteenth Congress, Second Regular Session, begun and held in Metro Manila on Monday, the twenty-fifth day of July, two thousand eleven.",
     "This Act is a consolidation of Senate Bill No. 2965 and House Bill No. 4115. It was finally passed by the Senate and the House of Representatives on June 6, 2012.",
     "Approved (signed into law) on August 15, 2012 by BENIGNO S. AQUINO III, President of the Philippines.",

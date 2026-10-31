@@ -16,5 +16,6 @@ export type ChatMessage = { role: "user" | "assistant"; content: string };
 export type StreamEvent =
   | { type: "sources"; sources: Source[] }
   | { type: "text"; value: string }
+  | { type: "reset" } // discard the partial answer; a retry follows
   | { type: "done"; provider: string }
   | { type: "error"; message: string };

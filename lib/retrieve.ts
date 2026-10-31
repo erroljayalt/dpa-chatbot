@@ -78,6 +78,8 @@ export async function retrieve(query: string, k = 5): Promise<{ chunks: Chunk[];
   if (secRef.length) boost((c) => c.section !== null && secRef.includes(c.section), 1);
   if (/\b(when|date|year|establish|enact|approv|sign|pass|effectiv|history|creat|title|stand for|mean|called|known as|dpa)\w*/i.test(query))
     boost((c) => c.id === "overview" || c.section === 1 || c.section === 45);
+  if (/\b(purpose|policy|objective|goal|aim|intent|why|what is the (dpa|data privacy act|law|act)|about)\b/i.test(query))
+    boost((c) => c.section === 2 || c.id === "overview", 0.06);
 
   const top = [...scores.entries()]
     .sort((a, b) => b[1] - a[1])

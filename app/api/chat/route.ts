@@ -51,6 +51,7 @@ export async function POST(req: Request) {
       try {
         for await (const part of streamAnswer(systemPrompt(chunks), messages)) {
           if ("provider" in part) provider = part.provider;
+          else if ("reset" in part) send({ type: "reset" });
           else send({ type: "text", value: part.text });
         }
         send({ type: "done", provider });

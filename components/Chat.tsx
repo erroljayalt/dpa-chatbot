@@ -78,6 +78,7 @@ export default function Chat({ onBusy }: { onBusy: (busy: boolean) => void }) {
           const ev = JSON.parse(line) as StreamEvent;
           if (ev.type === "sources") update((m) => ({ ...m, sources: ev.sources }));
           else if (ev.type === "text") update((m) => ({ ...m, content: m.content + ev.value }));
+          else if (ev.type === "reset") update((m) => ({ ...m, content: "" })); // shows the typing dots again
           else if (ev.type === "error") throw new Error(ev.message);
         }
       }
