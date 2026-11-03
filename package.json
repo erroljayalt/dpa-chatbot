@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "build-index": "node --env-file=.env.local scripts/build-index.mjs",
-    "test-rag": "node --env-file=.env.local scripts/test-questions.mjs"
+    "test-rag": "node --env-file=.env.local scripts/test-questions.mjs",
+    "eval": "node scripts/eval-retrieval.mjs"
   },
   "dependencies": {
     "@google/genai": "2.32.0",

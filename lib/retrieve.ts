@@ -7,6 +7,7 @@ import type { Chunk } from "./types";
 
 const chunks = index.chunks as Chunk[];
 const bm25 = new BM25(chunks.map((c) => `${c.title} ${c.title} ${c.text}`)); // title counted twice
+const MIN_SIMILARITY = 0.55; //add to measure off-topic questions
 
 // Abbreviations people use that the law spells out.
 const ALIASES: Record<string, string> = {
@@ -52,31 +53,39 @@ async function embedQuery(q: string): Promise<number[] | null> {
 
 const dot = (a: number[], b: number[]) => a.reduce((s, x, i) => s + x * b[i], 0);
 
-export async function retrieve(query: string, k = 5): Promise<{ chunks: Chunk[]; mode: "hybrid" | "keyword" }> {
+export async function retrieve(query: string, k = 5): Promise<{ chunks: Chunk[]; mode: "hybrid" | "keyword"; offTopic: boolean}> {
   const q = expand(query);
   const scores = new Map<number, number>();
   const RRF = 60;
 
-  bm25.search(q).slice(0, 20).forEach(([i], rank) => {
+  const keywordHits = bm25.search(q);
+  keywordHits.slice(0, 20).forEach(([i], rank) => {
     scores.set(i, (scores.get(i) ?? 0) + 1 / (RRF + rank));
   });
 
   const qv = await embedQuery(q);
+  let topSimilarity = 0;
   if (qv) {
-    chunks
+    const ranked = chunks
       .map((c, i) => [i, c.embedding ? dot(qv, c.embedding) : -1] as const)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 20)
-      .forEach(([i], rank) => scores.set(i, (scores.get(i) ?? 0) + 1 / (RRF + rank)));
+      .sort((a, b) => b[1] - a[1]);
+    topSimilarity = ranked[0][1];
+    ranked.slice(0, 20).forEach(([i], rank) => scores.set(i, (scores.get(i) ?? 0) + 1 / (RRF + rank)));
   }
 
+  const offTopic = qv !== null && keywordHits.length === 0 && topSimilarity < MIN_SIMILARITY;
+  
   // Boosts for questions the text answers in a known place.
-  const boost = (pred: (c: Chunk) => boolean, amount = 0.05) =>
+  const boost = (pred: (c: Chunk) => boolean, amount = 0.015) =>
     chunks.forEach((c, i) => pred(c) && scores.set(i, (scores.get(i) ?? 0) + amount));
 
+  const aboutTheAct = /\b(dpa|data privacy act|ra\s*10173|republic act|this act|the (act|law))\b/i;
   const secRef = [...query.matchAll(/\b(?:section|sec\.?)\s*(\d{1,2})\b/gi)].map((m) => Number(m[1]));
   if (secRef.length) boost((c) => c.section !== null && secRef.includes(c.section), 1);
-  if (/\b(when|date|year|establish|enact|approv|sign|pass|effectiv|history|creat|title|stand for|mean|called|known as|dpa)\w*/i.test(query))
+  if (
+    /\b(when|date|year|establish|enact|approv|sign|pass|effectiv|history|creat)\w*/i.test(query) ||
+    (/\b(mean|stand for|called|known as|title)\b/i.test(query) && aboutTheAct.test(query))
+  )
     boost((c) => c.id === "overview" || c.section === 1 || c.section === 45);
   if (/\b(purpose|policy|objective|goal|aim|intent|why|what is the (dpa|data privacy act|law|act)|about)\b/i.test(query))
     boost((c) => c.section === 2 || c.id === "overview", 0.06);
@@ -86,5 +95,5 @@ export async function retrieve(query: string, k = 5): Promise<{ chunks: Chunk[];
     .slice(0, k)
     .map(([i]) => chunks[i]);
 
-  return { chunks: top, mode: qv ? "hybrid" : "keyword" };
+  return { chunks: offTopic ? [] : top, mode: qv ? "hybrid" : "keyword", offTopic };
 }

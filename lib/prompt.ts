@@ -1,6 +1,7 @@
 import type { Chunk } from "./types";
 
 export const NOT_FOUND = "I couldn't find that in the Data Privacy Act of 2012 (RA 10173).";
+export const OFF_TOPIC = "I can only answer questions about the Data Privacy Act of 2012 (RA 10173). Try asking about personal information, your rights as a data subject, or the National Privacy Commission.";
 
 export function systemPrompt(sources: Chunk[]): string {
   const excerpts = sources
